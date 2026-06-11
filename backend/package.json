@@ -6,17 +6,17 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "build:bundle": "esbuild src/app.ts --bundle --platform=node --target=node20 --format=cjs --outfile=../api/_bundle.cjs --packages=external",
+    "build:bundle": "node scripts/build-vercel-api.mjs",
     "start": "node dist/index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "esbuild": "^0.25.0",
     "express": "^4.21.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.5",

@@ -6,7 +6,6 @@
   "framework": null,
   "functions": {
     "api/index.js": {
-      "includeFiles": "api/_bundle.cjs",
       "maxDuration": 30
     }
   },

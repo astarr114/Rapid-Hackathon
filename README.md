@@ -339,7 +339,7 @@ The chat bridge infers tool traces from user messages and returns `agentMeta` wi
 | Empty dashboard / API errors      | Run `cd backend && npm run dev`; check `http://localhost:3001/health`     |
 | Agent always in Demo mode         | Set `GEMINI_API_KEY` and `AGENT_ID` in `backend/.env` and restart backend |
 | Reliability score shows 0         | Restart backend (composite scoring); hard-refresh browser                 |
-| Vercel `FUNCTION_INVOCATION_FAILED` | Redeploy after latest changes; check `/health`. Ensure `GEMINI_API_KEY` + `AGENT_ID` are set in Vercel env |
+| Vercel `FUNCTION_INVOCATION_FAILED` / `ERR_REQUIRE_ESM` | Pull latest, redeploy. `api/index.js` is a bundled serverless file (run `npm run build:bundle --prefix backend` after backend edits). Set `GEMINI_API_KEY` + `AGENT_ID` in Vercel env |
 
 
 ---
