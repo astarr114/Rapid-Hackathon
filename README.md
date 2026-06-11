@@ -343,10 +343,49 @@ The chat bridge infers tool traces from user messages and returns `agentMeta` wi
 
 ---
 
+## Deploy to Vercel
+
+The repo is configured for a **single Vercel project**: Vite builds the React app; Express runs as a serverless function at `/api/*`.
+
+### One-time setup
+
+1. Push the repo to GitHub (or GitLab / Bitbucket).
+2. In [Vercel](https://vercel.com), **Add New Project** → import the repository.
+3. Leave **Root Directory** as the repo root (Vercel reads `vercel.json` automatically).
+4. Under **Environment Variables**, add:
+
+| Variable | Required | Notes |
+| -------- | -------- | ----- |
+| `GEMINI_API_KEY` | Yes (for live AI) | Google AI / Gemini API key |
+| `AGENT_ID` | Yes (for live AI) | e.g. `agents/YOUR_AGENT_ID` |
+| `NODE_ENV` | Optional | Set to `production` |
+
+`VERCEL_URL` is set automatically. You do **not** need `VITE_API_URL` — the frontend calls same-origin `/api`.
+
+5. Deploy. After deploy, open `https://<your-project>.vercel.app/health` — expect `{"ok":true}`.
+
+### CLI (optional)
+
+```bash
+npm i -g vercel
+vercel login
+vercel          # preview
+vercel --prod   # production
+```
+
+Set secrets with `vercel env add GEMINI_API_KEY` and `vercel env add AGENT_ID`.
+
+### Notes
+
+- **Demo data is in-memory** — serverless cold starts reset connector/incident state between invocations.
+- **Local dev unchanged** — still run backend on `:3001` and frontend on `:5173` with the Vite proxy.
+- For a **custom domain**, add it in Vercel → Domains; CORS uses `VERCEL_URL` / `FRONTEND_ORIGIN` if set.
+
+---
+
 ## Production TODO
 
-- Set real `GEMINI_API_KEY` and `AGENT_ID` in `backend/.env`
+- Set real `GEMINI_API_KEY` and `AGENT_ID` in Vercel env (or `backend/.env` locally)
 - Wire Settings UI to backend config / Secret Manager
 - Swap `backend/src/services/*` demo data for real API clients
 - Replace demo auth with SSO / OIDC
-- Set `VITE_API_URL` for production builds (dev uses Vite proxy)

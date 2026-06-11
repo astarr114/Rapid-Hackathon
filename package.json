@@ -1,0 +1,17 @@
+{
+  "name": "aroa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AROA — Autonomous Reliability & Operations Agent",
+  "scripts": {
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "zod": "^3.24.1"
+  }
+}

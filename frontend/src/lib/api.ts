@@ -1,5 +1,5 @@
 // Dev: Vite proxies /api → localhost:3001 (see vite.config.ts)
-// Prod: set VITE_API_URL or defaults to localhost:3001
+// Vercel / prod: same-origin /api (see vercel.json rewrites)
 const BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 export async function api<T = unknown>(path: string, init?: RequestInit): Promise<T> {
@@ -12,7 +12,9 @@ export async function api<T = unknown>(path: string, init?: RequestInit): Promis
     });
   } catch {
     throw new Error(
-      'Cannot reach backend. Start it with: cd backend && npm run dev (port 3001)',
+      import.meta.env.DEV
+        ? 'Cannot reach backend. Start it with: cd backend && npm run dev (port 3001)'
+        : 'Cannot reach API. Check deployment health at /health',
     );
   }
 
