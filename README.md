@@ -108,8 +108,8 @@ Open **http://localhost:5173/login** — any non-empty email and password works 
 | `/login` | Sign-in with AROA logo + light/dark theme toggle | No |
 | `/` | Overview — reliability score, KPIs, connectors, incidents, live ops, agent chat | Yes |
 | `/command-center` | Reliability scan, Gemini executive briefing, agent copilot, SLA alerts, blast radius | Yes |
-| `/pipelines` | Fivetran control plane — health metrics, schema/impact tabs, MAR usage, AI connector setup | Yes |
-| `/observability` | Log search, error rate KPIs, hourly error bars, correlated errors | Yes |
+| `/pipelines` | Fivetran control plane — editable schedules, health metrics, schema/impact tabs, MAR usage, AI connector setup | Yes |
+| `/observability` | Log search, error rate KPIs, hourly error bars — filter by 6h/24h/48h/7d or custom date range | Yes |
 | `/incidents` | SEV-tagged incidents, playbooks, agent remediation | Yes |
 | `/settings` | Demo credentials + live environment stats | Yes |
 
@@ -125,7 +125,7 @@ Open **http://localhost:5173/login** — any non-empty email and password works 
 |---------|--------------|---------------|
 | **Platform Reliability Score** | Weighted composite 0–100 across pipelines, freshness, incidents, error rate | Overview + Command Center |
 | **Full Reliability Scan** | Orchestrates all agent tools with visible tool trace | Command Center → **Run Full Reliability Scan** |
-| **Gemini Executive Briefing** | Grounded synthesis (situation, blast radius, incidents, MAR, actions) with citation chips | Command Center → briefing panel |
+| **Gemini Executive Briefing** | Score hero + color-coded section cards (situation, blast radius, incidents, cost, actions) with grounding citations | Command Center → briefing panel |
 | **Agent Status Bar** | Agent Builder connection, model, API revision, grounding source count | Command Center (top) |
 | **Agent Copilot** | In-page chat with session ID, live/demo badge, tool trace | Command Center sidebar |
 | **Agent Capabilities** | Lists Interactions API features + 5 grounding sources | Command Center |
@@ -138,6 +138,7 @@ Open **http://localhost:5173/login** — any non-empty email and password works 
 
 | Feature | What it does | Where to demo |
 |---------|--------------|---------------|
+| **Editable Connector Settings** | Update display name and sync schedule (presets or custom) | Pipelines → **View details** → **Overview** → **Connector settings** |
 | **Connector Health Dashboard** | Last sync status, duration, rows processed, sync history sparkline | Pipelines → **View details** → **Overview** tab |
 | **Schema & Impact** | Schema change timeline + downstream views/dashboards | Pipelines → **Schema & Impact** tab |
 | **Usage & MAR** | Monthly Active Rows, % change, estimated credits per connector | Pipelines → **Usage & MAR** table |
@@ -152,6 +153,14 @@ Open **http://localhost:5173/login** — any non-empty email and password works 
 | **Session continuity** | `previous_interaction_id` for multi-turn agent memory | Chat — session ID shown after first reply |
 | **Grounded responses** | Agent can reason over health history, schema changes, impact, MAR | Ask: *"Which connector has highest MAR?"* |
 
+### Observability
+
+| Feature | What it does | Where to demo |
+|---------|--------------|---------------|
+| **Timeframe filter** | Quick ranges (6h, 24h, **48h**, 7d) or custom start/end date | Observability → top **Timeframe** bar → **Apply** |
+| **Dynamic KPIs & chart** | Events, errors, and error bars scoped to selected window | Observability KPI row + **Errors over time** chart |
+| **Scoped log stream** | Log table filtered to the active timeframe | Observability → **Log stream** |
+
 ---
 
 ## Demo walkthroughs
@@ -159,7 +168,7 @@ Open **http://localhost:5173/login** — any non-empty email and password works 
 ### Command Center (~2 min)
 
 1. Open **Command Center** — note **Agent Status Bar** (Live vs Demo).
-2. Review **Gemini Executive Briefing** — click a **suggested prompt** to seed the copilot.
+2. Review **Gemini Executive Briefing** — score hero on the left, section cards on the right; click a **suggested prompt** to seed the copilot.
 3. Use **Agent Copilot** — ask about blast radius or remediation.
 4. Click **Run Full Reliability Scan** — expand findings + tool trace.
 5. Scroll to **SLA Breach Alerts** and the full-width **Blast Radius Map**.
@@ -167,10 +176,18 @@ Open **http://localhost:5173/login** — any non-empty email and password works 
 ### Pipelines / Fivetran (~2 min)
 
 1. **Pipelines** — review table columns (source, destination, last sync status, finished at).
-2. Open **GA4** (failed) → **Overview**: health metrics + sync duration trend bars.
-3. **Schema & Impact** tab — schema drift timeline + impacted BigQuery views.
-4. Scroll to **Usage & MAR** — GA4 highlighted as highest MAR connector.
-5. **Add connector with AI** — describe a pipeline → save → appears in table.
+2. Open any connector → **Connector settings**: change schedule (e.g. **every 6 hours**) → **Save changes** — table updates.
+3. Open **GA4** (failed) → **Overview**: health metrics + sync duration trend bars.
+4. **Schema & Impact** tab — schema drift timeline + impacted BigQuery views.
+5. Scroll to **Usage & MAR** — GA4 highlighted as highest MAR connector.
+6. **Add connector with AI** — describe a pipeline → save → appears in table.
+
+### Observability (~1 min)
+
+1. Open **Observability** — default shows last **24 hours**.
+2. Change timeframe to **48 hours** → click **Apply** — KPIs, chart, and logs refresh.
+3. Switch to **Custom date range**, pick start/end dates → **Apply**.
+4. Filter logs by service chip or search (e.g. `conn_ga4_001`).
 
 ### AI-assisted connector creation
 
@@ -193,7 +210,7 @@ Open **http://localhost:5173/login** — any non-empty email and password works 
 | Service | Contents |
 |---------|----------|
 | **Fivetran** | 6 connectors: Salesforce, GA4 (failed), Postgres, Shopify, Marketo (paused), Zendesk (warning). Rich health fields, 10-run sync history, schema changes, MAR usage |
-| **Elastic** | 12 log entries; 5% error rate (125/2500); correlated errors for GA4 |
+| **Elastic** | 24+ log entries spanning up to ~60h; error rate scales with timeframe; correlated errors for GA4 |
 | **Mongo** | 4 incidents: GA4 SEV-1, Zendesk SEV-2, Marketo resolved, Shopify partial sync |
 | **BigQuery** | Per-table freshness + `downstream_views` / dashboard impact per table |
 
@@ -225,6 +242,7 @@ Open **http://localhost:5173/login** — any non-empty email and password works 
 | `/usage-summary` | GET | MAR + estimated credits per connector |
 | `/trigger-sync` | POST | Trigger demo sync |
 | `/update-connector-schema` | POST | Apply schema patch |
+| `/update-connector` | POST | Edit connector `name` and `schedule` (presets or custom) |
 | `/pause-connector` | POST | Pause connector |
 | `/resume-connector` | POST | Resume connector |
 | `/add-connector` | POST | Add connector (AI flow) |
@@ -233,7 +251,7 @@ Open **http://localhost:5173/login** — any non-empty email and password works 
 
 | Route group | Key endpoints |
 |-------------|---------------|
-| `/api/elastic` | `search-logs`, `get-error-rate`, `find-correlated-errors` |
+| `/api/elastic` | `search-logs`, `get-error-rate`, `find-correlated-errors` — all accept `timeRangeHours` and/or `startTime` + `endTime` |
 | `/api/mongo` | `create-incident`, `list-incidents`, `update-incident/:id`, `get-playbook` |
 | `/api/bigquery` | `check-freshness`, `check-impact` (supports `primaryTable`) |
 | `/api/chat` | POST — Gemini Interactions API bridge; returns `reply`, `sessionId`, `toolTrace`, `agentMeta` |
@@ -272,10 +290,10 @@ frontend/
 │   │   ├── ExecutiveBriefingPanel
 │   │   ├── CommandCenterAgentChat
 │   │   ├── AgentStatusBar, AgentGroundingPanel
-│   │   ├── ConnectorUsagePanel, SyncDurationBars
+│   │   ├── ConnectorUsagePanel, SyncDurationBars, ConnectorEditForm
 │   │   ├── ChatPanel, AiConnectorModal, LiveOpsFeed, …
 │   ├── hooks/                 useCommandPaletteActions
-│   └── lib/                   api.ts (proxied /api), types, format, statusBadge
+│   └── lib/                   api.ts (proxied /api), types, format, connectorSchedules, statusBadge
 └── vite.config.ts             /api proxy → localhost:3001
 ```
 
@@ -285,7 +303,7 @@ frontend/
 
 Point your agent's tool HTTP actions at `http://localhost:3001/api/...`. Recommended tools:
 
-- `list_connectors`, `get_connector_history`, `get_schema_changes`, `usage_summary`
+- `list_connectors`, `update_connector`, `get_connector_history`, `get_schema_changes`, `usage_summary`
 - `check_freshness`, `check_impact`
 - `list_incidents`, `get_playbook`
 - `reliability_scan`, `lineage_graph`, `auto_remediate`

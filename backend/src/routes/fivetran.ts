@@ -71,6 +71,24 @@ router.post('/update-connector-schema', (req, res) => {
   res.json(fivetran.updateConnectorSchema(connectorId, schemaConfig ?? {}));
 });
 
+router.post('/update-connector', (req, res) => {
+  const { connectorId, name, schedule } = req.body as {
+    connectorId?: string;
+    name?: string;
+    schedule?: string;
+  };
+  if (!connectorId) {
+    res.status(400).json({ error: 'connectorId is required' });
+    return;
+  }
+  const result = fivetran.updateConnector(connectorId, { name, schedule });
+  if (!result.success) {
+    res.status(404).json(result);
+    return;
+  }
+  res.json(result);
+});
+
 router.post('/pause-connector', (req, res) => {
   const { connectorId } = req.body as { connectorId?: string };
   if (!connectorId) {

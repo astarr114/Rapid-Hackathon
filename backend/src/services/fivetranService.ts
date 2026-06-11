@@ -6,6 +6,7 @@
   SchemaChangeEvent,
   SchemaConfig,
   SyncHistoryEntry,
+  UpdateConnectorInput,
 } from '../types/connectors.js';
 const mins = (m: number) => new Date(Date.now() - m * 60 * 1000).toISOString();
 const minsFuture = (m: number) => new Date(Date.now() + m * 60 * 1000).toISOString();
@@ -496,4 +497,38 @@ export function resumeConnector(connectorId: string) {
   connector.status = connector.lastSyncStatus === 'failed' ? 'failed' : 'active';
   connector.syncState = connector.status === 'failed' ? 'broken' : 'scheduled';
   return { success: true, connectorId, status: connector.status };
+}
+
+function scheduleToMinutes(schedule: string): number {
+  const s = schedule.toLowerCase();
+  if (s.includes('15 minute')) return 15;
+  if (s.includes('30 minute')) return 30;
+  if (s.includes('1 hour') || s === 'hourly') return 60;
+  if (s.includes('6 hour')) return 360;
+  if (s.includes('12 hour')) return 720;
+  if (s.includes('daily') || s.includes('24 hour')) return 1440;
+  return 60;
+}
+
+export function updateConnector(connectorId: string, updates: UpdateConnectorInput) {
+  const connector = demoConnectors.find((c) => c.id === connectorId);
+  if (!connector) return { success: false as const, connectorId, message: 'Connector not found' };
+
+  if (updates.name?.trim()) {
+    connector.name = updates.name.trim();
+  }
+  if (updates.schedule?.trim()) {
+    connector.schedule = updates.schedule.trim();
+    const intervalMin = scheduleToMinutes(connector.schedule);
+    connector.nextSyncAt = new Date(Date.now() + intervalMin * 60 * 1000).toISOString();
+  }
+
+  demoLogs.unshift({
+    timestamp: new Date().toISOString(),
+    level: 'info',
+    message: `Connector ${connectorId} updated — schedule: ${connector.schedule}`,
+    connectorId,
+  });
+
+  return { success: true as const, connector };
 }

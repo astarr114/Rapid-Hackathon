@@ -129,7 +129,7 @@ export function runReliabilityScan() {
         'warn',
       ),
     );
-    const correlated = elastic.findCorrelatedErrors(failed.id, 24);
+    const correlated = elastic.findCorrelatedErrors(failed.id, { timeRangeHours: 24 });
     trace.push(
       timedTrace(
         'find_correlated_errors',
@@ -140,7 +140,7 @@ export function runReliabilityScan() {
     );
   }
 
-  const errorRate = elastic.getErrorRate('pipeline-logs-*', 24);
+  const errorRate = elastic.getErrorRate('pipeline-logs-*', { timeRangeHours: 24 });
   trace.push(
     timedTrace(
       'get_error_rate',
