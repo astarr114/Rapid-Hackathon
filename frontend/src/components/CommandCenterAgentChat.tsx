@@ -1,4 +1,4 @@
-import { FormEvent, useRef, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import type { AgentMeta, ToolTraceEntry } from '../lib/types';
 import { AgentToolTrace } from './AgentToolTrace';
@@ -29,6 +29,14 @@ export function CommandCenterAgentChat({ seedPrompt, onSeedConsumed }: CommandCe
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastSeed = useRef<string | undefined>();
 
+  useEffect(() => {
+    if (seedPrompt && seedPrompt !== lastSeed.current) {
+      lastSeed.current = seedPrompt;
+      setInput(seedPrompt);
+      onSeedConsumed?.();
+    }
+  }, [seedPrompt, onSeedConsumed]);
+
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return;
 
@@ -58,12 +66,6 @@ export function CommandCenterAgentChat({ seedPrompt, onSeedConsumed }: CommandCe
       setLoading(false);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }
-  }
-
-  if (seedPrompt && seedPrompt !== lastSeed.current) {
-    lastSeed.current = seedPrompt;
-    setInput(seedPrompt);
-    onSeedConsumed?.();
   }
 
   function handleSubmit(e: FormEvent) {
