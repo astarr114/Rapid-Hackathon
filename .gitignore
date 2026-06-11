@@ -1,5 +1,6 @@
 node_modules/
 dist/
+api/_bundle.cjs
 .env
 *.log
 .DS_Store

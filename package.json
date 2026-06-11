@@ -4,7 +4,7 @@
   "private": true,
   "description": "AROA — Autonomous Reliability & Operations Agent",
   "scripts": {
-    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "build": "npm run build --prefix backend && npm run build:bundle --prefix backend && npm run build --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend"
   },
