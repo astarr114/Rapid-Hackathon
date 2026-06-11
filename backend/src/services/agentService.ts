@@ -140,7 +140,9 @@ export function generateExecutiveBriefing() {
   };
 }
 
-export async function generateBriefingWithGemini(): Promise<ReturnType<typeof generateExecutiveBriefing>> {
+export async function generateBriefingWithGemini(): Promise<
+  ReturnType<typeof generateExecutiveBriefing> & { geminiNarrative?: string }
+> {
   const briefing = generateExecutiveBriefing();
   const live = getAgentStatus().connected;
 

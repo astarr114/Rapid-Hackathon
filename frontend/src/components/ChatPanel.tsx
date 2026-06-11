@@ -1,12 +1,13 @@
 import { FormEvent, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import type { ToolTraceEntry } from '../lib/types';
+import type { AgentMeta, ToolTraceEntry } from '../lib/types';
 import { AgentToolTrace } from './AgentToolTrace';
 
 interface Message {
   role: 'user' | 'assistant';
   text: string;
   toolTrace?: ToolTraceEntry[];
+  agentMeta?: AgentMeta;
 }
 
 export function ChatPanel() {
@@ -19,6 +20,7 @@ export function ChatPanel() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
+  const [agentMode, setAgentMode] = useState<'live' | 'demo'>('demo');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   async function handleSend(e: FormEvent) {
@@ -35,14 +37,16 @@ export function ChatPanel() {
         reply: string;
         sessionId?: string;
         toolTrace?: ToolTraceEntry[];
+        agentMeta?: AgentMeta;
       }>('/chat', {
         method: 'POST',
         body: JSON.stringify({ message: text, sessionId }),
       });
       if (data.sessionId) setSessionId(data.sessionId);
+      if (data.agentMeta) setAgentMode(data.agentMeta.mode);
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', text: data.reply, toolTrace: data.toolTrace },
+        { role: 'assistant', text: data.reply, toolTrace: data.toolTrace, agentMeta: data.agentMeta },
       ]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to reach agent';
@@ -55,8 +59,20 @@ export function ChatPanel() {
 
   return (
     <div className="card chat-panel">
-      <h2 className="card__title">SRE Agent</h2>
-      <p className="chat-panel__subtitle">Powered by Gemini Agent Builder · Tool trace enabled</p>
+      <div className="chat-panel__header">
+        <div>
+          <h2 className="card__title">SRE Agent</h2>
+          <p className="chat-panel__subtitle">Powered by Gemini Agent Builder · Tool trace enabled</p>
+        </div>
+        <span className={`badge badge--${agentMode === 'live' ? 'success' : 'warning'}`}>
+          {agentMode === 'live' ? 'Live agent' : 'Demo'}
+        </span>
+      </div>
+      {sessionId && (
+        <p className="chat-panel__session muted" title={sessionId}>
+          Session · {sessionId.slice(0, 16)}…
+        </p>
+      )}
 
       <div className="chat-messages">
         {messages.map((msg, i) => (
