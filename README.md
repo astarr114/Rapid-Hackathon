@@ -1,6 +1,8 @@
 # AROA — Autonomous Reliability & Operations Agent
 
-Enterprise-style hackathon demo for the **Google Cloud Rapid Agent Hackathon**. A full-stack reliability platform with auth, multi-page dashboard, settings UI, and an SRE agent chat bridge to **Gemini Agent Builder** via the Interactions API.
+Enterprise-style hackathon demo for the **Google Cloud Rapid Agent Hackathon**. A full-stack data reliability control plane with auth, multi-page dashboard, Fivetran-style pipeline management, and an SRE agent powered by **Gemini Agent Builder** via the **Interactions API**.
+
+![AROA](frontend/public/aroa-logo.png)
 
 ## Architecture
 
@@ -14,49 +16,52 @@ flowchart TB
     Observability["/observability"]
     Incidents["/incidents"]
     Settings["/settings"]
+    Theme["Light / Dark theme"]
     Chat["ChatPanel + Tool Trace"]
     CmdK["Ctrl+K Palette"]
   end
 
   subgraph Backend["Backend (Node + Express)"]
     API["/api/fivetran · elastic · mongo · bigquery"]
-    Intel["/api/intelligence"]
+    Intel["/api/intelligence · agent-status · ai-briefing"]
+    AI["/api/ai/propose-connector"]
     ChatBridge["/api/chat"]
     Demo["In-memory demo services"]
   end
 
   subgraph External["Google Cloud"]
     Gemini["Gemini Interactions API"]
+    AgentBuilder["Agent Builder agent + tools"]
   end
 
   Login --> Overview
   Overview --> Chat
-  Overview --> Intel
   CmdCtr --> Intel
+  CmdCtr --> Chat
   Chat --> ChatBridge
   ChatBridge --> Gemini
+  ChatBridge --> AgentBuilder
   Pipelines --> API
   Observability --> API
   Incidents --> API
   Intel --> Demo
   API --> Demo
-  Settings -.->|"demo only"| Browser
 ```
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  React SPA (localhost:5173)                                     │
-│  ┌──────────┐  AuthContext · SettingsContext · ToastContext     │
-│  │ Sidebar  │  Overview │ Command Center │ Pipelines │ …       │
-│  └──────────┘  ChatPanel · Live Ops · Reliability Score         │
-└────────────────────────────┬────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  React SPA (localhost:5173)                                          │
+│  Vite proxies /api → localhost:3001                                  │
+│  ThemeContext · AuthContext · SettingsContext · ToastContext         │
+│  Sidebar (AROA logo) │ Overview │ Command Center │ Pipelines │ …    │
+└────────────────────────────┬─────────────────────────────────────────┘
                              │ HTTP /api/*
-┌────────────────────────────▼────────────────────────────────────┐
-│  Express API (localhost:3001)                                   │
-│  /api/fivetran  /api/elastic  /api/mongo  /api/bigquery         │
-│  /api/intelligence  /api/ai (propose-connector)                 │
-│  /api/chat ──────────────────────────► Gemini Interactions API  │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────▼─────────────────────────────────────────┐
+│  Express API (localhost:3001)                                        │
+│  /api/fivetran  /api/elastic  /api/mongo  /api/bigquery              │
+│  /api/intelligence  /api/ai  /api/chat                               │
+│  /api/chat ──────────────────────────► Gemini Interactions API     │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 All `/api/*` tool routes return **in-memory demo data** — no live Fivetran, Elasticsearch, MongoDB, or BigQuery required.
@@ -64,23 +69,23 @@ All `/api/*` tool routes return **in-memory demo data** — no live Fivetran, El
 ## Prerequisites
 
 - Node.js 20+
-- Gemini API key and Agent Builder agent ID (for live agent chat)
+- Gemini API key and Agent Builder agent ID (optional — demo mode works without them)
 
 ## Quick start
 
-### Backend
+### 1. Backend
 
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env — set GEMINI_API_KEY and AGENT_ID
+# Edit .env — set GEMINI_API_KEY and AGENT_ID for live agent
 npm install
 npm run dev
 ```
 
 Runs at **http://localhost:3001** · Health: `GET /health`
 
-### Frontend
+### 2. Frontend
 
 ```bash
 cd frontend
@@ -88,101 +93,222 @@ npm install
 npm run dev
 ```
 
-Runs at **http://localhost:5173**
+Runs at **http://localhost:5173** (Vite prints the exact URL if another port is used).
+
+> **Tip:** If the browser shows `ERR_CONNECTION_REFUSED`, the dev server is not running. Start both terminals above and use the URL Vite prints (often `5173`, sometimes `5174`).
+
+### 3. Sign in
+
+Open **http://localhost:5173/login** — any non-empty email and password works (demo auth).
 
 ## Routes
 
 | Path | Description | Auth required |
 |------|-------------|---------------|
-| `/login` | Demo sign-in (any non-empty email + password) | No |
-| `/` | Overview — KPIs, connectors, incidents, agent chat | Yes |
-| `/pipelines` | 6+ demo connectors, AI-assisted setup, impact summaries, detail drawer | Yes |
-| `/observability` | 12+ log entries, error bars, service filter chips, 5% error rate KPIs | Yes |
-| `/incidents` | 4 SEV-tagged incidents, related connector info, agent remediation | Yes |
-| `/settings` | Realistic fake credentials + live demo environment stats | Yes |
-| `/command-center` | AI reliability score, full scan, SLA predictions, blast radius map | Yes |
+| `/login` | Sign-in with AROA logo + light/dark theme toggle | No |
+| `/` | Overview — reliability score, KPIs, connectors, incidents, live ops, agent chat | Yes |
+| `/command-center` | Reliability scan, Gemini executive briefing, agent copilot, SLA alerts, blast radius | Yes |
+| `/pipelines` | Fivetran control plane — health metrics, schema/impact tabs, MAR usage, AI connector setup | Yes |
+| `/observability` | Log search, error rate KPIs, hourly error bars, correlated errors | Yes |
+| `/incidents` | SEV-tagged incidents, playbooks, agent remediation | Yes |
+| `/settings` | Demo credentials + live environment stats | Yes |
 
-## Standout features (hackathon differentiators)
+**Global UI:** Light/dark theme toggle in the top bar (and on login). `Ctrl+K` command palette on authenticated pages.
+
+---
+
+## Standout features
+
+### Platform reliability & Command Center
 
 | Feature | What it does | Where to demo |
 |---------|--------------|---------------|
-| **Platform Reliability Score** | Composite 0–100 score across connectors, freshness, errors, incidents | Overview + Command Center |
-| **Full Reliability Scan** | Orchestrates all agent tools in one call with visible tool trace | Command Center → "Run Full Reliability Scan" |
-| **Agent Tool Trace** | Shows which tools the SRE agent invoked (transparent AI) | Chat panel + scan results |
+| **Platform Reliability Score** | Weighted composite 0–100 across pipelines, freshness, incidents, error rate | Overview + Command Center |
+| **Full Reliability Scan** | Orchestrates all agent tools with visible tool trace | Command Center → **Run Full Reliability Scan** |
+| **Gemini Executive Briefing** | Grounded synthesis (situation, blast radius, incidents, MAR, actions) with citation chips | Command Center → briefing panel |
+| **Agent Status Bar** | Agent Builder connection, model, API revision, grounding source count | Command Center (top) |
+| **Agent Copilot** | In-page chat with session ID, live/demo badge, tool trace | Command Center sidebar |
+| **Agent Capabilities** | Lists Interactions API features + 5 grounding sources | Command Center |
+| **Predictive SLA Breach Alerts** | Forecasts which BigQuery tables will breach SLA | Command Center |
+| **Blast Radius Map** | Responsive full-width lineage graph: connector → tables → views → dashboards | Command Center (bottom) |
 | **Live Ops Feed** | Simulated real-time pipeline events (polls every 5s) | Overview + Command Center |
-| **Predictive SLA Breach Alerts** | Forecasts which BigQuery tables will breach SLA | Command Center table |
-| **Blast Radius Map** | SVG lineage graph: connector → tables → dashboards | Command Center |
-| **Autonomous Remediation** | One-click multi-step fix (schema → sync → freshness) | Pipelines → failed connector → Auto-fix |
-| **Command Palette** | `Ctrl+K` power-user shortcuts for scan, navigate, remediate | Any authenticated page |
-| **AI Connector Setup** | Gemini generates pipeline config from natural language | Pipelines → "Add connector with AI" |
+| **Command Palette** | `Ctrl+K` shortcuts for scan, navigate, remediate | Any authenticated page |
+
+### Fivetran control plane (Pipelines 2.0)
+
+| Feature | What it does | Where to demo |
+|---------|--------------|---------------|
+| **Connector Health Dashboard** | Last sync status, duration, rows processed, sync history sparkline | Pipelines → **View details** → **Overview** tab |
+| **Schema & Impact** | Schema change timeline + downstream views/dashboards | Pipelines → **Schema & Impact** tab |
+| **Usage & MAR** | Monthly Active Rows, % change, estimated credits per connector | Pipelines → **Usage & MAR** table |
+| **AI Connector Setup** | Gemini generates pipeline config from natural language | Pipelines → **Add connector with AI** |
+| **Autonomous Remediation** | One-click multi-step fix (schema → sync → freshness) | Pipelines → failed GA4 → **Auto-fix** |
+
+### Agent & transparency
+
+| Feature | What it does | Where to demo |
+|---------|--------------|---------------|
+| **Agent Tool Trace** | Shows which tools the SRE agent invoked | Chat panel, scan results, Command Center copilot |
+| **Session continuity** | `previous_interaction_id` for multi-turn agent memory | Chat — session ID shown after first reply |
+| **Grounded responses** | Agent can reason over health history, schema changes, impact, MAR | Ask: *"Which connector has highest MAR?"* |
+
+---
+
+## Demo walkthroughs
+
+### Command Center (~2 min)
+
+1. Open **Command Center** — note **Agent Status Bar** (Live vs Demo).
+2. Review **Gemini Executive Briefing** — click a **suggested prompt** to seed the copilot.
+3. Use **Agent Copilot** — ask about blast radius or remediation.
+4. Click **Run Full Reliability Scan** — expand findings + tool trace.
+5. Scroll to **SLA Breach Alerts** and the full-width **Blast Radius Map**.
+
+### Pipelines / Fivetran (~2 min)
+
+1. **Pipelines** — review table columns (source, destination, last sync status, finished at).
+2. Open **GA4** (failed) → **Overview**: health metrics + sync duration trend bars.
+3. **Schema & Impact** tab — schema drift timeline + impacted BigQuery views.
+4. Scroll to **Usage & MAR** — GA4 highlighted as highest MAR connector.
+5. **Add connector with AI** — describe a pipeline → save → appears in table.
 
 ### AI-assisted connector creation
 
-1. Go to **Pipelines** → click **✨ Add connector with AI**
+1. **Pipelines** → **Add connector with AI**
 2. Describe the pipeline (e.g. *"Sync Shopify orders into BigQuery daily"*)
-3. Click **Ask Gemini to generate config** — uses `/api/ai/propose-connector` (Gemini when API key set, else smart keyword fallback)
-4. Review the proposal → **Save demo connector** — persists via `/api/fivetran/add-connector` and appears in Overview KPIs
+3. **Ask Gemini to generate config** — `/api/ai/propose-connector`
+4. **Save demo connector** — `/api/fivetran/add-connector`
 
-### Demo data (backend)
+### Quick agent prompts
+
+- *"Summarize blast radius for GA4 and list impacted dashboards"*
+- *"Which connectors should we de-prioritize based on MAR vs downstream usage?"*
+- *"Run autonomous remediation plan for conn_ga4_001"*
+- *"Scan all connectors and report failures"*
+
+---
+
+## Demo data
 
 | Service | Contents |
 |---------|----------|
-| **Fivetran** | 6 connectors: Salesforce, GA4 (failed), Postgres, Shopify, Marketo (paused), Zendesk (warning) |
-| **Elastic** | 12 log entries across pipeline-service, api-gateway, billing-service; 5% error rate (125/2500) |
+| **Fivetran** | 6 connectors: Salesforce, GA4 (failed), Postgres, Shopify, Marketo (paused), Zendesk (warning). Rich health fields, 10-run sync history, schema changes, MAR usage |
+| **Elastic** | 12 log entries; 5% error rate (125/2500); correlated errors for GA4 |
 | **Mongo** | 4 incidents: GA4 SEV-1, Zendesk SEV-2, Marketo resolved, Shopify partial sync |
-| **BigQuery** | Per-table freshness (GA4 CRITICAL, Shopify LATE, Salesforce OK) + dashboard impact summaries |
+| **BigQuery** | Per-table freshness + `downstream_views` / dashboard impact per table |
 
-### Intelligence API (`/api/intelligence`)
+---
+
+## API reference
+
+### Intelligence (`/api/intelligence`)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/reliability-scan` | POST | Full platform scan + score + findings + tool trace |
 | `/sla-predictions` | GET | Predictive freshness breach probabilities |
-| `/lineage-graph` | GET | Downstream blast radius graph data |
+| `/lineage-graph` | GET | Blast radius / lineage graph data |
 | `/auto-remediate` | POST | Autonomous fix sequence for a connector |
-| `/live-events` | GET | Live ops event stream (poll with `?since=`) |
+| `/live-events` | GET | Live ops stream (`?since=` ISO timestamp) |
+| `/agent-status` | GET | Agent Builder config, capabilities, grounding sources |
+| `/ai-briefing` | POST | Executive briefing (live Gemini when API key set) |
 
-## Demo video script (~3 min)
+### Fivetran (`/api/fivetran`)
 
-1. **Login** at `/login` — sign in with any credentials.
-2. **Overview** — show Reliability Score gauge, Live Ops Feed, ask agent: *"Scan all connectors"*, expand **tool trace** under the reply.
-3. **Command Center** — run **Full Reliability Scan**, walk through findings, SLA predictions, blast radius map.
-4. **Pipelines** → **Add connector with AI** → describe Shopify pipeline → save → show in table.
-5. **Pipelines** — open failed GA4 connector → impact summary → **Auto-fix**.
-6. **Observability** — error bars, filter by `pipeline-service`, search logs.
-7. **Incidents** — select GA4 SEV-1 → **Ask agent for remediation** → view playbook.
-8. Press **Ctrl+K** — command palette.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/list-connectors` | POST | All connectors with health metrics |
+| `/get-connector-status` | POST | Single connector health |
+| `/get-connector-logs` | POST | Recent logs (`connectorId`, `timeRangeHours`) |
+| `/get-connector-history` | POST | Last 10 sync runs (duration, status, rows) |
+| `/get-schema-changes` | POST | Schema drift timeline per connector |
+| `/usage-summary` | GET | MAR + estimated credits per connector |
+| `/trigger-sync` | POST | Trigger demo sync |
+| `/update-connector-schema` | POST | Apply schema patch |
+| `/pause-connector` | POST | Pause connector |
+| `/resume-connector` | POST | Resume connector |
+| `/add-connector` | POST | Add connector (AI flow) |
 
-## API endpoints (demo)
+### Other routes
 
-| Route group | Tools |
-|-------------|-------|
-| `/api/fivetran` | `list-connectors`, `get-connector-status`, `get-connector-logs`, `trigger-sync`, `update-connector-schema`, `pause-connector`, `resume-connector`, **`add-connector`** |
+| Route group | Key endpoints |
+|-------------|---------------|
 | `/api/elastic` | `search-logs`, `get-error-rate`, `find-correlated-errors` |
 | `/api/mongo` | `create-incident`, `list-incidents`, `update-incident/:id`, `get-playbook` |
-| `/api/bigquery` | `check-freshness`, `check-impact`, `check-impact` (with `primaryTable`) |
-| `/api/chat` | Gemini Interactions API bridge |
-| `/api/ai` | **`propose-connector`** — Gemini-powered pipeline config generation |
+| `/api/bigquery` | `check-freshness`, `check-impact` (supports `primaryTable`) |
+| `/api/chat` | POST — Gemini Interactions API bridge; returns `reply`, `sessionId`, `toolTrace`, `agentMeta` |
+| `/api/ai` | `propose-connector` — Gemini-powered pipeline config |
 
-## Frontend structure (new)
+---
+
+## Environment variables
+
+`backend/.env`:
+
+```env
+PORT=3001
+NODE_ENV=development
+GEMINI_API_KEY=your_gemini_api_key
+AGENT_ID=agents/YOUR_AGENT_ID
+FRONTEND_ORIGIN=http://localhost:5173
+```
+
+Without valid `GEMINI_API_KEY` and `AGENT_ID`, the app runs in **demo mode** with intelligent fallbacks for chat and briefings.
+
+---
+
+## Frontend structure
 
 ```
-frontend/src/
-├── contexts/       AuthContext, SettingsContext, ToastContext
-├── layouts/        AppLayout (sidebar + outlet)
-├── pages/          Login, Overview, Pipelines, Observability, Incidents, Settings
-├── components/     Sidebar, Topbar, StatCard, ChatPanel, RequireAuth, StatusBadge, …
-└── lib/            api.ts, types.ts, constants.ts (DEFAULT_SETTINGS)
+frontend/
+├── public/
+│   └── aroa-logo.png          # Sidebar + login branding
+├── src/
+│   ├── contexts/              Auth, Settings, Toast, Theme
+│   ├── layouts/               AppLayout (sidebar + outlet + command palette)
+│   ├── pages/                 Login, Overview, CommandCenter, Pipelines, …
+│   ├── components/
+│   │   ├── ImpactLineageMap   # Responsive blast radius SVG
+│   │   ├── ExecutiveBriefingPanel
+│   │   ├── CommandCenterAgentChat
+│   │   ├── AgentStatusBar, AgentGroundingPanel
+│   │   ├── ConnectorUsagePanel, SyncDurationBars
+│   │   ├── ChatPanel, AiConnectorModal, LiveOpsFeed, …
+│   ├── hooks/                 useCommandPaletteActions
+│   └── lib/                   api.ts (proxied /api), types, format, statusBadge
+└── vite.config.ts             /api proxy → localhost:3001
 ```
+
+---
 
 ## Wiring Agent Builder tools
 
-Point your agent's tool HTTP actions at `http://localhost:3001/api/...`. Tool names should map to the POST routes above.
+Point your agent's tool HTTP actions at `http://localhost:3001/api/...`. Recommended tools:
+
+- `list_connectors`, `get_connector_history`, `get_schema_changes`, `usage_summary`
+- `check_freshness`, `check_impact`
+- `list_incidents`, `get_playbook`
+- `reliability_scan`, `lineage_graph`, `auto_remediate`
+
+The chat bridge infers tool traces from user messages and returns `agentMeta` with grounding source metadata.
+
+---
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| `ERR_CONNECTION_REFUSED` on :5173 | Run `cd frontend && npm run dev`; use the URL Vite prints |
+| Empty dashboard / API errors | Run `cd backend && npm run dev`; check `http://localhost:3001/health` |
+| Agent always in Demo mode | Set `GEMINI_API_KEY` and `AGENT_ID` in `backend/.env` and restart backend |
+| Reliability score shows 0 | Restart backend (composite scoring); hard-refresh browser |
+
+---
 
 ## Production TODO
 
 - [ ] Set real `GEMINI_API_KEY` and `AGENT_ID` in `backend/.env`
-- [ ] Wire Settings UI values to backend config / Secret Manager (see `backend/src/config.ts`)
-- [ ] Swap demo services in `backend/src/services/*` for real API clients
-- [ ] Replace demo auth with real SSO / OIDC
-- [ ] Update `frontend/src/lib/api.ts` base URL for deployment
+- [ ] Wire Settings UI to backend config / Secret Manager
+- [ ] Swap `backend/src/services/*` demo data for real API clients
+- [ ] Replace demo auth with SSO / OIDC
+- [ ] Set `VITE_API_URL` for production builds (dev uses Vite proxy)
